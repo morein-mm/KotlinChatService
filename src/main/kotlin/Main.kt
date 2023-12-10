@@ -67,11 +67,21 @@ object ChatService {
         return true
     }
 
-    fun sendMessage(chatId: Int, message: Message) : Message {
-        val chat = getChatById(chatId)
-        chat.messages += message.copy(id = chat.nextMessageId)
-        chat.nextMessageId ++
-        return chat.messages.last()
+//    fun sendMessage(chatId: Int, message: Message) : Message {
+//        val chat = getChatById(chatId)
+//        chat.messages += message.copy(id = chat.nextMessageId)
+//        chat.nextMessageId ++
+//        return chat.messages.last()
+//    }
+
+    fun sendMessage(companionUserId: Int, message: Message) : Message {
+        var chat = getChats(message.authorId).intersect(getChats(companionUserId)).singleOrNull()
+        if (chat != null) {
+            chat.messages += message.copy(id = chat.nextMessageId)
+            chat.nextMessageId ++
+            return chat.messages.last()
+        }
+        return createChat(message.authorId, companionUserId, message.text).messages.last()
     }
 
     fun getChatById(chatID: Int) : Chat {
@@ -109,20 +119,29 @@ object ChatService {
         return lastMessages
     }
 
-    fun getMessagesFromChat(currentUserId: Int, companionUserId: Int, numberOfMessages: Int) : List<Message>  {
-        var messagesList = listOf<Message>()
-        val chat = getChats(currentUserId).intersect(getChats(companionUserId).toSet())
-        if (chat.count() == 1) {
-            val toIndex = chat.elementAt(0).messages.size
-            var fromIndex = chat.elementAt(0).messages.size - numberOfMessages
-            if (fromIndex < 0) {fromIndex = 0}
-            messagesList = chat.elementAt(0).messages.subList(fromIndex, toIndex)
-            for (message in messagesList) {
-                if (message.authorId == companionUserId) {message.read = true}
-            }
-        }
-        return messagesList
-    }
+    fun getMessagesFromChat(currentUserId: Int, companionUserId: Int, numberOfMessages: Int): List<Message> =
+        getChats(currentUserId).intersect(getChats(companionUserId)) // Находим пересечение чатов между двумя пользователями
+            .singleOrNull() // Возвращает единственный чат, если он есть, иначе null
+            ?.messages // Получаем список сообщений из найденного чата
+            .orEmpty() // В случае, если чата нет, возвращает пустой список
+// .asReversed().take(numberOfMessages) // Альтернатива: переворачиваем список и берем первые 'numberOfMessages' сообщений
+            .takeLast(numberOfMessages) // Берем последние 'numberOfMessages' сообщений из непустого списка
+            .onEach { if (it.authorId == companionUserId) it.read = true } // Устанавливает сообщения как прочитанные, если автор - companionUserId
+
+//    fun getMessagesFromChat(currentUserId: Int, companionUserId: Int, numberOfMessages: Int) : List<Message>  {
+//        var messagesList = listOf<Message>()
+//        val chat = getChats(currentUserId).intersect(getChats(companionUserId).toSet())
+//        if (chat.count() == 1) {
+//            val toIndex = chat.elementAt(0).messages.size
+//            var fromIndex = chat.elementAt(0).messages.size - numberOfMessages
+//            if (fromIndex < 0) {fromIndex = 0}
+//            messagesList = chat.elementAt(0).messages.subList(fromIndex, toIndex)
+//            for (message in messagesList) {
+//                if (message.authorId == companionUserId) {message.read = true}
+//            }
+//        }
+//        return messagesList
+//    }
 
     fun clear() {
         chats = mutableListOf<Chat>()

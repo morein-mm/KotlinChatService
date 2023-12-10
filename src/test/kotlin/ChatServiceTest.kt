@@ -29,16 +29,18 @@ class ChatServiceTest {
     }
 
     @Test
-    fun sendMessageSuccess() {
+    fun sendMessageToExistingChat() {
         val chat = ChatService.createChat(1, 2, "Hello, User2")
         val message = ChatService.sendMessage(chat.id, Message(authorId = 1, text = "How are you?"))
         assertEquals(2, message.id)
     }
 
-    @Test(expected = ChatNotFoundException::class)
-    fun sendMessageChatNotFoundException() {
-        val message = ChatService.sendMessage(1, Message(authorId = 1, text = "How are you?"))
+    @Test
+    fun sendMessageToNewChat() {
+        val message = ChatService.sendMessage(2, Message(authorId = 1, text = "How are you?"))
+        assertEquals(1, message.id)
     }
+
 
     @Test
     fun getChatByIdSuccess() {
